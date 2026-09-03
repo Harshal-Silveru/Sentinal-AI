@@ -46,4 +46,9 @@ public class ProjectController {
     public void deleteProject(@PathVariable Long id) {
         projectService.deleteProject(id);
     }
+
+    @PostMapping("/{id}/upload")
+    public void uploadProject(@PathVariable Long id, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        projectService.uploadAndExtractProject(id, file);
+    }
 }

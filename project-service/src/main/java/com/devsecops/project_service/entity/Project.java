@@ -73,4 +73,15 @@ public class Project {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    @Column(name = "extraction_path")
+    private String extractionPath;
+
+    public String getExtractionPath() {
+        return extractionPath;
+    }
+
+    public void setExtractionPath(String extractionPath) {
+        this.extractionPath = extractionPath;
+    }
 }

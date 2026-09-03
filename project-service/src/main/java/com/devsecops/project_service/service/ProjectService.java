@@ -67,4 +67,56 @@ public class ProjectService {
 
         projectRepository.deleteById(id);
     }
+
+    public void uploadAndExtractProject(Long projectId, org.springframework.web.multipart.MultipartFile file) {
+        Project project = getProjectById(projectId);
+
+        if (file == null || file.isEmpty() || file.getOriginalFilename() == null || !file.getOriginalFilename().toLowerCase().endsWith(".zip")) {
+            throw new IllegalArgumentException("Invalid file format. Only ZIP files are accepted.");
+        }
+
+        if (file.getSize() > 20 * 1024 * 1024) { // 20MB
+            throw new IllegalArgumentException("File size exceeds 20MB limit");
+        }
+
+        try {
+            java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("project_extract_" + projectId);
+            try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(file.getInputStream())) {
+                java.util.zip.ZipEntry zipEntry = zis.getNextEntry();
+                while (zipEntry != null) {
+                    java.nio.file.Path newPath = zipSlipProtect(zipEntry, tempDir);
+                    if (zipEntry.isDirectory()) {
+                        java.nio.file.Files.createDirectories(newPath);
+                    } else {
+                        if (newPath.getParent() != null) {
+                            if (java.nio.file.Files.notExists(newPath.getParent())) {
+                                java.nio.file.Files.createDirectories(newPath.getParent());
+                            }
+                        }
+                        java.nio.file.Files.copy(zis, newPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    zipEntry = zis.getNextEntry();
+                }
+                zis.closeEntry();
+            }
+
+            project.setExtractionPath(tempDir.toAbsolutePath().toString());
+            project.setStatus("EXTRACTED");
+            projectRepository.save(project);
+
+            org.slf4j.LoggerFactory.getLogger(ProjectService.class).info("Extraction complete for project {} at {}", projectId, tempDir);
+
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to extract zip file", e);
+        }
+    }
+
+    private java.nio.file.Path zipSlipProtect(java.util.zip.ZipEntry zipEntry, java.nio.file.Path targetDir) throws java.io.IOException {
+        java.nio.file.Path targetDirResolved = targetDir.resolve(zipEntry.getName());
+        java.nio.file.Path normalizePath = targetDirResolved.normalize();
+        if (!normalizePath.startsWith(targetDir)) {
+            throw new java.io.IOException("Bad zip entry: " + zipEntry.getName());
+        }
+        return normalizePath;
+    }
 }

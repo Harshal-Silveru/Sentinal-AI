@@ -39,4 +39,20 @@ public class ScanController {
 
         return scanService.getScansByProject(projectId);
     }
+
+    @GetMapping("/{id}/findings")
+    public List<com.devsecops.project_service.entity.Finding> getFindingsByScanId(@PathVariable Long id) {
+        return scanService.getFindingsByScanId(id);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.devsecops.project_service.srcs.SrcsScorer srcsScorer;
+    
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.devsecops.project_service.srcs.ContextExpander contextExpander;
+
+    @GetMapping("/{id}/selected-code")
+    public com.devsecops.project_service.dto.SelectedCodeResponse getSelectedCode(@PathVariable Long id) throws Exception {
+        return scanService.getSelectedCodeForScan(id, srcsScorer, contextExpander);
+    }
 }

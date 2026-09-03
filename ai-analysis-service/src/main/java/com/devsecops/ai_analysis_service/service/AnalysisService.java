@@ -14,13 +14,16 @@ public class AnalysisService {
 
     private final AnalysisRepository analysisRepository;
     private final ProjectScanningServiceClient scanClient;
+    private final com.devsecops.ai_analysis_service.llm.OpenAiCompatibleLlmClient llmClient;
 
     public AnalysisService(
             AnalysisRepository analysisRepository,
-            ProjectScanningServiceClient scanClient) {
+            ProjectScanningServiceClient scanClient,
+            com.devsecops.ai_analysis_service.llm.OpenAiCompatibleLlmClient llmClient) {
 
         this.analysisRepository = analysisRepository;
         this.scanClient = scanClient;
+        this.llmClient = llmClient;
     }
 
     public Analysis createAnalysis(Analysis analysis) {
@@ -32,21 +35,22 @@ public class AnalysisService {
             throw new RuntimeException("Scan does not exist");
         }
 
-        if (analysis.getRiskScore() == null) {
-            analysis.setRiskScore(
-                    calculateRiskScore(scan.getSecurityScore())
-            );
+        com.fasterxml.jackson.databind.JsonNode findings = scanClient.getFindings(analysis.getScanId());
+        com.fasterxml.jackson.databind.JsonNode selectedCode = scanClient.getSelectedCode(analysis.getScanId());
+
+        String contextPayload = "";
+        if (selectedCode != null && selectedCode.has("selectedUnits")) {
+            contextPayload = selectedCode.get("selectedUnits").toString();
+            if (selectedCode.has("expandedUnits")) {
+                contextPayload += "\nExpanded Context:\n" + selectedCode.get("expandedUnits").toString();
+            }
         }
 
-        if (analysis.getExplanation() == null ||
-                analysis.getExplanation().isBlank()) {
+        com.devsecops.ai_analysis_service.llm.LlmResult llmResult = llmClient.explain(contextPayload, findings);
 
-            analysis.setExplanation(
-                    generateExplanation(
-                            analysis.getRiskScore()
-                    )
-            );
-        }
+        analysis.setExplanation(llmResult.getExplanation());
+        analysis.setRiskScore(llmResult.getRiskScore());
+        analysis.setSource(llmResult.getSource());
 
         return analysisRepository.save(analysis);
     }

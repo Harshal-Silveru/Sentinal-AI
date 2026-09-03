@@ -90,6 +90,12 @@ public class ReportService {
         reportRepository.deleteById(id);
     }
 
+    public byte[] generatePdf(Long reportId, com.devsecops.reporting_service.pdf.PdfReportGenerator pdfGenerator) {
+        Report report = getReportById(reportId);
+        AnalysisResponse analysis = analysisClient.getAnalysisById(report.getAnalysisId());
+        return pdfGenerator.generateReport(analysis);
+    }
+
     private String generateSummary(
             AnalysisResponse analysis) {
 

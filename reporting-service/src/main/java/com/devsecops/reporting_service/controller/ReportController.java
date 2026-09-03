@@ -53,4 +53,12 @@ public class ReportController {
 
         reportService.deleteReport(id);
     }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.devsecops.reporting_service.pdf.PdfReportGenerator pdfGenerator;
+
+    @GetMapping(value = "/{id}/pdf", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public byte[] getReportPdf(@PathVariable Long id) {
+        return reportService.generatePdf(id, pdfGenerator);
+    }
 }

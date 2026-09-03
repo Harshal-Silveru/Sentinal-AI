@@ -16,7 +16,7 @@ public class Analysis {
     @Column(nullable = false)
     private Double riskScore;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, length = 10000)
     private String explanation;
 
     public Analysis() {
@@ -58,5 +58,16 @@ public class Analysis {
 
     public void setExplanation(String explanation) {
         this.explanation = explanation;
+    }
+
+    @Column(nullable = false, length = 50)
+    private String source;
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
     }
 }
